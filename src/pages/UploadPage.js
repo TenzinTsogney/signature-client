@@ -8,6 +8,9 @@ const UploadPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Always get from env for deployment; set in Netlify Dashboard
+  const API_BASE_URL = process.env.REACT_APP_API_URL;
+
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     setMessage("");
@@ -15,19 +18,24 @@ const UploadPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return setMessage("Please select a PDF file.");
+    if (!file) {
+      setMessage("Please select a PDF file.");
+      return;
+    }
     setLoading(true);
 
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/docs/upload", formData, {
+      const res = await axios.post(`${API_BASE_URL}/api/docs/upload`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (res.data.success && res.data.document) {
         alert("✅ Upload successful! Redirecting to dashboard...");
+        // Save document info if needed
+        localStorage.setItem("uploadedDoc", JSON.stringify(res.data.document));
         navigate("/dashboard");
       } else {
         throw new Error("Unexpected upload response");
@@ -41,7 +49,14 @@ const UploadPage = () => {
   };
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial", maxWidth: "600px", margin: "0 auto" }}>
+    <div
+      style={{
+        padding: "2rem",
+        fontFamily: "Arial",
+        maxWidth: "600px",
+        margin: "0 auto",
+      }}
+    >
       <h2>📤 Upload PDF</h2>
       <form onSubmit={handleSubmit}>
         <input
